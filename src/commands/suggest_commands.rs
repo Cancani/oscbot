@@ -1,6 +1,6 @@
 use std::vec;
 
-use poise::serenity_prelude::{self as serenity, CreateAttachment, CreateButton, CreateEmbed, CreateMessage};
+use poise::serenity_prelude::{self as serenity, CreateAttachment, CreateMessage};
 use rosu_v2::prelude as rosu;
 use crate::{Context, Error, defaults, discord_helper::MessageState, embeds, firebase, osu};
 
@@ -21,13 +21,13 @@ pub async fn score(
     if scoreid.is_some() {
         let unwrapped_score_id = scoreid.unwrap();
         if firebase::scores::score_already_saved(&unwrapped_score_id.to_string()).await {
-            embeds::single_text_response(&ctx, &format!("Score {} has already been requested", unwrapped_score_id), MessageState::WARN).await;
+            embeds::single_text_response(&ctx, &format!("Score {} has already been requested", unwrapped_score_id), MessageState::WARN, false).await;
             return Ok(());
         }
         let score: rosu::Score = match osu::get_osu_instance().score(unwrapped_score_id).await {
             Ok(score) => score,
             Err(_) => {
-                embeds::single_text_response(&ctx, &format!("Score with id {} does not exist", unwrapped_score_id), MessageState::ERROR).await;
+                embeds::single_text_response(&ctx, &format!("Score with id {} does not exist", unwrapped_score_id), MessageState::ERROR, false).await;
                 return Ok(());
             }
         };
@@ -51,21 +51,21 @@ pub async fn score(
         let replay = match osu_db::Replay::from_bytes(&bytes) {
             Ok(replay) => replay,
             Err(_) => {
-                embeds::single_text_response(&ctx, "Replay could not be parsed", MessageState::ERROR).await;
+                embeds::single_text_response(&ctx, "Replay could not be parsed", MessageState::ERROR, false).await;
                 return Ok(());
             },
         };
         let default_checksum = "".to_string();
         let replay_checksum = replay.replay_hash.as_ref().unwrap_or(&default_checksum);
         if firebase::scores::score_already_saved(replay_checksum).await {
-            embeds::single_text_response(&ctx, "Score file has already been requested", MessageState::WARN).await;
+            embeds::single_text_response(&ctx, "Score file has already been requested", MessageState::WARN, false).await;
             return Ok(());
         }
         let checksum = replay.beatmap_hash.as_ref().unwrap_or(&default_checksum);
         let map: rosu::BeatmapExtended = match osu::get_osu_instance().beatmap().checksum(checksum).await {
             Ok(map) => map,
             Err(_) => {
-                embeds::single_text_response(&ctx, "Cannot find map related to the replay", MessageState::WARN).await;
+                embeds::single_text_response(&ctx, "Cannot find map related to the replay", MessageState::WARN, false).await;
                 return Ok(());
             },
         };
@@ -77,11 +77,11 @@ pub async fn score(
         firebase::scores::insert_score(replay_checksum).await;
     }
     else {
-        embeds::single_text_response(&ctx, "Please define scoreid or scorefile", MessageState::WARN).await;
+        embeds::single_text_response(&ctx, "Please define scoreid or scorefile", MessageState::WARN, false).await;
         return Ok(());
     }
 
     defaults::SUGGESTIONS_CHANNEL.send_message(ctx, suggestion).await?;
-    embeds::single_text_response(&ctx, "Score has been requested!", MessageState::INFO).await;
+    embeds::single_text_response(&ctx, "Score has been requested!", MessageState::INFO, false).await;
     Ok(())
 }

@@ -1,42 +1,4 @@
-use rosu_v2::prelude::{self as rosu, GameModIntermode, GameMods, NoFailOsu};
-
-use rosu_v2::prelude::GameMod;
-
-fn convert_osu_db_mod_to_string(m: osu_db::Mod) -> &'static str {
-    match m {
-        // osu!
-        osu_db::Mod::NoFail => "NF",
-        osu_db::Mod::Easy => "EZ",
-        osu_db::Mod::TouchDevice => "TD",
-        osu_db::Mod::Hidden => "HD",
-        osu_db::Mod::HardRock => "HR",
-        osu_db::Mod::SuddenDeath => "SD",
-        osu_db::Mod::DoubleTime => "DT",
-        osu_db::Mod::Relax => "RX",
-        osu_db::Mod::HalfTime => "HT",
-        osu_db::Mod::Nightcore => "NC",
-        osu_db::Mod::Flashlight => "FL",
-        osu_db::Mod::Autoplay => "AT",
-        osu_db::Mod::SpunOut => "SO",
-        osu_db::Mod::Autopilot => "AP",
-        osu_db::Mod::Perfect => "PF",
-        osu_db::Mod::Random => "RD",
-        osu_db::Mod::LastMod => "CN",
-        osu_db::Mod::TargetPractice => "TP",
-        // mania
-        osu_db::Mod::Key1 => "1K",
-        osu_db::Mod::Key2 => "2K",
-        osu_db::Mod::Key3 => "3K",
-        osu_db::Mod::Key4 => "4K",
-        osu_db::Mod::Key5 => "5K",
-        osu_db::Mod::Key6 => "6K",
-        osu_db::Mod::Key7 => "7K",
-        osu_db::Mod::Key8 => "8K",
-        osu_db::Mod::Key9 => "9K",
-        osu_db::Mod::Coop => "CO",
-        osu_db::Mod::FadeIn => "FI",
-    }
-}
+use rosu_v2::prelude::{self as rosu, GameModIntermode};
 
 pub fn map_title(map: &rosu::BeatmapExtended) -> String {
     let mapset = map.mapset.as_deref().expect("missing mapset");

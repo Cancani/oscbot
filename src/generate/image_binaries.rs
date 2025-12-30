@@ -1,4 +1,4 @@
-use rosu_v2::{model::Grade, prelude::GameMod};
+use rosu_v2::{model::Grade};
 
 pub const TEMPLATE_MAIN: &[u8] = include_bytes!("./data/templates/main.png");
 

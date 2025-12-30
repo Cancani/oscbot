@@ -2,9 +2,9 @@ use ab_glyph::{FontRef, PxScale};
 use image::{DynamicImage, GenericImage, Rgba, imageops::FilterType};
 use imageproc::drawing::draw_text_mut;
 use osu_db::Replay;
-use rosu_v2::prelude::{self as rosu, Username, UserId};
+use rosu_v2::prelude::{self as rosu};
 use std::io::Cursor;
-use crate::{generate::image_binaries, huismetbenen, osu, Error};
+use crate::{generate::image_binaries, huismetbenen, osu};
 
 const SPACE_BETWEEN_MODS: u32 = 20;
 
@@ -69,7 +69,7 @@ fn write_centered(img: &mut DynamicImage, color: &Rgba<u8>, cx: i32, cy: i32, sc
 
 pub async fn generate_thumbnail_from_replay_file(replay: &Replay, map: rosu::BeatmapExtended, subtitle: &str) -> Vec<u8> {
     let user = osu::get_osu_instance().user(replay.player_name.as_ref().expect("Expect a username")).await.expect("Player to exist");
-    let result = huismetbenen::calculate_score(replay, &map).await;
+    let result = huismetbenen::calculate_score_by_replay(replay, &map).await;
     let mods = osu::formatter::convert_osu_db_to_mod_array(replay.mods);
     let grade = osu::formatter::calculate_grade_from_accuracy(result.accuracy, replay.count_miss > 0, mods.contains(&"HD".to_string()));
     generate_thumbnail(user, map, subtitle, Some(result.pp), result.accuracy, replay.max_combo as u32, mods, &grade).await

@@ -1,4 +1,3 @@
-use rosu_v2::model::score;
 use rosu_v2::prelude as rosu;
 use poise::serenity_prelude::{self as serenity, Colour};
 
@@ -22,17 +21,17 @@ pub fn get_embed_color(message_state: &MessageState) -> Colour {
         .expect("State must have color")
 }
 
-pub async fn single_text_response(ctx: &Context<'_>, text: &str, message_state: MessageState ) {
+pub async fn single_text_response(ctx: &Context<'_>, text: &str, message_state: MessageState, ephemeral: bool) {
     let _ = ctx.send(
         poise::CreateReply::default().embed(
             serenity::CreateEmbed::default().description(text).color(get_embed_color(&message_state))
-        )
+        ).ephemeral(ephemeral)
     ).await;
 }
 
 pub async fn score_embed_from_replay_file(replay: &osu_db::Replay, map: &rosu::BeatmapExtended) -> Result<serenity::CreateEmbed, Error> {
     let user = osu::get_osu_instance().user(replay.player_name.as_ref().expect("Expect a username")).await.expect("Player to exist");
-    let result = huismetbenen::calculate_score(replay, map).await;
+    let result = huismetbenen::calculate_score_by_replay(replay, map).await;
     let hits = format!("{}/{}/{}/{}", replay.count_300, replay.count_100, replay.count_50, replay.count_miss);
     let mods = osu::formatter::convert_osu_db_to_mod_array(replay.mods).join("");
     score_embed(map, &user, Some(replay.online_score_id), replay.score, result.accuracy, hits, replay.max_combo as u32, mods, Some(result.pp)).await
