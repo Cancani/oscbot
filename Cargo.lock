@@ -1822,9 +1822,13 @@ dependencies = [
  "firebase-rs",
  "image",
  "imageproc",
+ "osu-db",
  "poise",
  "reqwest",
  "rosu-v2",
+ "serde",
+ "serde_json",
+ "time",
  "tokio",
 ]
 

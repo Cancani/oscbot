@@ -8,7 +8,7 @@ pub async fn handle_message(ctx: &serenity::Context, new_message: &serenity::Mes
         return Ok(());
     }
     
-    if new_message.content == "sata andagi" {
+    if new_message.content.to_lowercase().contains("sata andagi") {
         new_message.react(ctx, emojis::SATA_ANDAGI).await?;
     }
     

@@ -1,9 +1,10 @@
 use ab_glyph::{FontRef, PxScale};
 use image::{DynamicImage, GenericImage, Rgba, imageops::FilterType};
 use imageproc::drawing::draw_text_mut;
-use rosu_v2::prelude as rosu;
+use osu_db::Replay;
+use rosu_v2::prelude::{self as rosu, Username, UserId};
 use std::io::Cursor;
-use crate::{generate::image_binaries, osu};
+use crate::{generate::image_binaries, huismetbenen, osu, Error};
 
 const SPACE_BETWEEN_MODS: u32 = 20;
 
@@ -66,8 +67,21 @@ fn write_centered(img: &mut DynamicImage, color: &Rgba<u8>, cx: i32, cy: i32, sc
     draw_text_mut(img, *color, x, y, scale, &font, text);
 }
 
+pub async fn generate_thumbnail_from_replay_file(replay: &Replay, map: rosu::BeatmapExtended, subtitle: &str) -> Vec<u8> {
+    let user = osu::get_osu_instance().user(replay.player_name.as_ref().expect("Expect a username")).await.expect("Player to exist");
+    let result = huismetbenen::calculate_score(replay, &map).await;
+    let mods = osu::formatter::convert_osu_db_to_mod_array(replay.mods);
+    let grade = osu::formatter::calculate_grade_from_accuracy(result.accuracy, replay.count_miss > 0, mods.contains(&"HD".to_string()));
+    generate_thumbnail(user, map, subtitle, Some(result.pp), result.accuracy, replay.max_combo as u32, mods, &grade).await
+}
+
 pub async fn generate_thumbnail_from_score(score: rosu::Score, map: rosu::BeatmapExtended, subtitle: &str) -> Vec<u8> {
     let user = score.get_user(osu::get_osu_instance()).await.expect("User should exist");
+    let mods: Vec<String> = score.mods.iter().map(|beatmap| beatmap.acronym().to_string()).collect();
+    generate_thumbnail(user, map, subtitle, score.pp, score.accuracy, score.max_combo, mods, &score.grade).await
+}
+
+async fn generate_thumbnail(user: rosu::UserExtended, map: rosu::BeatmapExtended, subtitle: &str, pp: Option<f32>, accuracy: f32, max_combo: u32, mods: Vec<String>, grade:&rosu::Grade) -> Vec<u8> {
     let user_stats = user.statistics.as_ref().expect("Stats must exist");
     let mapset = map.mapset.as_ref().expect("Mapset must exist");
 
@@ -81,7 +95,7 @@ pub async fn generate_thumbnail_from_score(score: rosu::Score, map: rosu::Beatma
         None => "Unranked",
     };
 
-    let pp: &str = match score.pp {
+    let pp: &str = match pp {
         Some(pp) => &format!("{}pp", pp as u32),
         None => "Unranked",
     };
@@ -107,8 +121,8 @@ pub async fn generate_thumbnail_from_score(score: rosu::Score, map: rosu::Beatma
     let font = FontRef::try_from_slice(image_binaries::FONT_ALLER_BD.iter().as_slice()).unwrap();
 
     write_centered(&mut score_bg, &white, 960, 300, PxScale::from(70.0), &font, &user.username);
-    write_centered(&mut score_bg, &white, 1550, 300, PxScale::from(80.0), &font, &format!("{:.2}%", score.accuracy));
-    write_centered(&mut score_bg, &white, 375, 300, PxScale::from(80.0), &font, &format!("{}x", score.max_combo));
+    write_centered(&mut score_bg, &white, 1550, 300, PxScale::from(80.0), &font, &format!("{:.2}%", accuracy));
+    write_centered(&mut score_bg, &white, 375, 300, PxScale::from(80.0), &font, &format!("{}x", max_combo));
     draw_text_mut(&mut score_bg, white, 1305, 570, PxScale::from(70.0), &font, global_rank);
     draw_text_mut(&mut score_bg, white, 1305, 662, PxScale::from(70.0), &font, country_rank);
     write_centered(&mut score_bg, &Rgba([222, 222, 222, 255]), 1360, 460, PxScale::from(80.0), &font, pp);
@@ -117,15 +131,15 @@ pub async fn generate_thumbnail_from_score(score: rosu::Score, map: rosu::Beatma
     write_centered(&mut score_bg, &white, 960, 140, PxScale::from(90.0), &font, &mapset.title);
     write_centered(&mut score_bg, &white, 960, 950, PxScale::from(60.0), &font, subtitle);
 
-    let length = score.mods.len();
+    let length = mods.len();
     let start = 960 - (length as u32 * (MOD_WIDTH + SPACE_BETWEEN_MODS) / 2);
-    for (i, gamemod) in score.mods.iter().enumerate() {
-        let current_round = i as u32;
+    for (i, gamemod) in mods.iter().enumerate() {
+        let current_round: u32 = i as u32;
         let mod_image = image::load_from_memory(image_binaries::get_mod_bytes(gamemod)).unwrap();
         image::imageops::overlay(&mut score_bg, &mod_image, (start + (current_round * (MOD_WIDTH + SPACE_BETWEEN_MODS))) as i64, 770);
     }
 
-    let mut grade_image = image::load_from_memory(image_binaries::get_rank_bytes(&score.grade)).unwrap();
+    let mut grade_image = image::load_from_memory(image_binaries::get_rank_bytes(grade)).unwrap();
     grade_image = grade_image.resize((grade_image.width() as f32 / 2.5) as u32, (grade_image.height() as f32 / 2.5) as u32, FilterType::Nearest);
     image::imageops::overlay(&mut score_bg, &grade_image, 490, 450);
     

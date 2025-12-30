@@ -2,6 +2,7 @@ use poise::serenity_prelude as serenity;
 
 mod embeds;
 mod firebase;
+mod huismetbenen;
 mod osu;
 mod emojis;
 mod defaults;

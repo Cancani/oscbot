@@ -1,5 +1,6 @@
-use poise::serenity_prelude::{ self as serenity, ComponentInteraction, CreateInteractionResponseMessage};
-use crate::{Error, osu};
+use poise::serenity_prelude::{ self as serenity, ComponentInteraction, CreateEmbed, CreateInteractionResponseMessage};
+use crate::discord_helper::{user_has_replay_role, MessageState};
+use crate::{Error, embeds, osu};
 use crate::generate::thumbnail;
 
 pub async fn handle_click(ctx: &serenity::Context, component: &ComponentInteraction) -> Result<(), Error> {
@@ -17,6 +18,16 @@ pub async fn handle_click(ctx: &serenity::Context, component: &ComponentInteract
 }
 
 pub async fn generate_thumbnail_from_button(ctx: &serenity::Context, component: &serenity::ComponentInteraction, data: &[&str; 1]) -> Result<(), Error> {
+    if !user_has_replay_role(ctx, &component.user).await.unwrap() {
+        _ = component.create_response(ctx, 
+            serenity::CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::default().embed(
+                    CreateEmbed::default().description("No permission L").color(embeds::get_embed_color(&MessageState::INFO))
+                ).ephemeral(true)
+            )
+        ).await?;
+        return Ok(());
+    }
     component.create_response(ctx, serenity::CreateInteractionResponse::Defer(CreateInteractionResponseMessage::default().content("Thumbnail is being generated"))).await?;
     let score_id: u64 = data[0].parse().unwrap();
     let score = osu::get_osu_instance().score(score_id).await.expect("Score must exist");
@@ -24,7 +35,8 @@ pub async fn generate_thumbnail_from_button(ctx: &serenity::Context, component: 
     let thumbnail = thumbnail::generate_thumbnail_from_score(score, map, &"").await;
     component.edit_response(
         ctx, 
-        serenity::EditInteractionResponse::new().new_attachment(serenity::CreateAttachment::bytes(thumbnail, "thumbnail.png")
-        )).await?;
+        serenity::EditInteractionResponse::new()
+        .new_attachment(serenity::CreateAttachment::bytes(thumbnail, "thumbnail.png"))
+    ).await?;
     Ok(())
 }

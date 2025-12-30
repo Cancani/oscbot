@@ -177,12 +177,10 @@ static RANK_TABLE: &[(&Grade, &[u8])] = &[
     (&Grade::D, RANK_D),
 ];
 
-pub fn get_mod_bytes(m: &GameMod) -> &'static [u8] {
-    let binding = m.acronym();
-    let key = binding.as_str();
+pub fn get_mod_bytes(mod_acronym: &String) -> &'static [u8] {
     MOD_TABLE
         .iter()
-        .find(|(k, _)| *k == key)
+        .find(|(k, _)| *k == mod_acronym)
         .map(|(_, v)| *v)
         .expect("Mod must have file")
 }

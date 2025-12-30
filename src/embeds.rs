@@ -1,7 +1,8 @@
+use rosu_v2::model::score;
 use rosu_v2::prelude as rosu;
 use poise::serenity_prelude::{self as serenity, Colour};
 
-use crate::osu;
+use crate::{huismetbenen, osu};
 use crate::{Context, Error};
 use crate::discord_helper::MessageState;
 
@@ -29,23 +30,43 @@ pub async fn single_text_response(ctx: &Context<'_>, text: &str, message_state: 
     ).await;
 }
 
-pub async fn score_embed(score: &rosu::Score) -> Result<serenity::CreateEmbed, Error> {
-    let map = osu::get_osu_instance().beatmap().map_id(score.map_id).await.expect("Beatmap exists");
-    let mapset = score.mapset.as_deref().expect("Mapset has not been found");
-    let user = score.user.as_deref().expect("Mapset has not been found");
+pub async fn score_embed_from_replay_file(replay: &osu_db::Replay, map: &rosu::BeatmapExtended) -> Result<serenity::CreateEmbed, Error> {
+    let user = osu::get_osu_instance().user(replay.player_name.as_ref().expect("Expect a username")).await.expect("Player to exist");
+    let result = huismetbenen::calculate_score(replay, map).await;
+    let hits = format!("{}/{}/{}/{}", replay.count_300, replay.count_100, replay.count_50, replay.count_miss);
+    let mods = osu::formatter::convert_osu_db_to_mod_array(replay.mods).join("");
+    score_embed(map, &user, Some(replay.online_score_id), replay.score, result.accuracy, hits, replay.max_combo as u32, mods, Some(result.pp)).await
+}
+
+pub async fn score_embed_from_score(score: &rosu::Score, map: &rosu::BeatmapExtended) -> Result<serenity::CreateEmbed, Error> {
+    let user = score.get_user(osu::get_osu_instance()).await.expect("User has not been found");
+    let hits = osu::formatter::osu_hits(&score.statistics);
+    let mods = osu::formatter::mods_string(&score.mods);
+    score_embed(map, &user, Some(score.id), score.score, score.accuracy, hits, score.max_combo, mods, score.pp).await
+}
+
+async fn score_embed(map: &rosu::BeatmapExtended, user: &rosu::UserExtended, score_id: Option<u64>, score: u32, accuracy: f32, hits: String, max_combo: u32, mods: String, pp: Option<f32>) -> Result<serenity::CreateEmbed, Error> {
+    let mapset = map.mapset.as_ref().expect("Mapset has not been found");
     let embed = serenity::CreateEmbed::default();
     let title = osu::formatter::map_title(&map);
-    let author = serenity::CreateEmbedAuthor::new(format!("Score done by {}", user.username)).url(osu::formatter::score_url(&score.id));
+    let mut author = serenity::CreateEmbedAuthor::new(format!("Score done by {}", user.username));
+
+    match score_id {
+        Some(score_id) => {
+            author = author.url(osu::formatter::score_url(&score_id));
+        },
+        _ => (),
+    };
 
     Ok(embed.author(author).color(get_embed_color(&MessageState::SUCCESS))
          .title(title)
-         .url(map.url)
+         .url(map.url.to_string())
          .thumbnail(user.avatar_url.clone())
          .image(mapset.covers.card.clone())
-         .field("Score:", score.score.to_string(), true)
-         .field("Accuracy:", score.accuracy.to_string(), true)
-         .field("Hits:", osu::formatter::osu_hits(&score.statistics), true)
-         .field("Combo:", score.max_combo.to_string() + "x", true)
-         .field("Mods:", osu::formatter::mods_string(&score.mods), true)
-         .field("PP:", score.pp.unwrap_or(0.0).to_string(), true))
+         .field("Score:", score.to_string(), true)
+         .field("Accuracy:", format!("{:.2}",accuracy), true)
+         .field("Hits:", hits, true)
+         .field("Combo:", max_combo.to_string() + "x", true)
+         .field("Mods:", mods, true)
+         .field("PP:", format!("{:.2}", pp.unwrap_or(0.0)), true))
 }
