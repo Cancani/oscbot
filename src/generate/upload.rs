@@ -48,9 +48,11 @@ pub async fn render_and_upload(
     cff.edit(embeds::render_and_upload_embed(&title, true, None, false)?).await?;
     let replay_path = danser::render(cff, &title, map_hash, replay_reference, user_id).await?;
     println!("{}", replay_path);
-    let video_id = youtube::upload(&replay_path, title.clone(), description, thumbnail).await.unwrap();
+    let title_too_long = title.len() > 100;
+    let video_title = if title_too_long {&"temporary title please replace".to_string()} else {&title};
+    let video_id = youtube::upload(&replay_path, video_title.clone(), description, thumbnail).await.unwrap();
     cff.edit(embeds::render_and_upload_embed(&title, true, Some("100%".to_string()), false)?).await?;
     danser::cleanup_files(&map_hash, &replay_reference, &replay_path).await;
-    cff.edit(embeds::upload_result_embed(&title, &video_id)?).await?;
+    cff.edit(embeds::upload_result_embed(&title, &video_id, title_too_long)?).await?;
     Ok(())
 }

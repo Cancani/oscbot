@@ -10,7 +10,7 @@ use crate::osu;
 use crate::discord_helper::{ContextForFunctions, MessageState};
 use crate::generate::{danser, thumbnail, upload};
 
-#[poise::command(slash_command, rename = "dev", subcommands("test_osu_client", "test_thumbnail", "test_danser_and_youtube", "regenerate_token"))]
+#[poise::command(slash_command, rename = "dev", subcommands("test_osu_client", "test_thumbnail", "test_danser_and_youtube", "regenerate_token", "test_upload"))]
 pub async fn bundle(_ctx: Context<'_>, _arg: String) -> Result<(), Error> { Ok(()) }
 
 #[poise::command(slash_command)]
@@ -87,10 +87,18 @@ pub async fn test_danser_and_youtube (
 }
 
 #[poise::command(slash_command)]
+pub async fn test_upload(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.defer_ephemeral().await?;
+    youtube::upload(&"videoForRegen/random.mp4".into(), "test".into(), "test".into(), vec![]).await?;
+    single_text_response(&ctx, "regenerated token!", MessageState::SUCCESS, true).await;
+    Ok(())
+}
+
+#[poise::command(slash_command)]
 pub async fn regenerate_token(ctx: Context<'_>) -> Result<(), Error> {
     ctx.defer_ephemeral().await?;
     remove_file("token.json").ok();
-    youtube::upload(&"/videoForRegen/random.mp4".into(), "test".into(), "test".into(), vec![]).await?;
+    youtube::upload(&"videoForRegen/random.mp4".into(), "test".into(), "test".into(), vec![]).await?;
     single_text_response(&ctx, "regenerated token!", MessageState::SUCCESS, true).await;
     Ok(())
 }

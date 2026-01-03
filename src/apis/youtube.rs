@@ -60,7 +60,7 @@ pub async fn upload(video_path: &String, title: String, description: String, thu
 
     let mut status = VideoStatus::default();
     status.privacy_status = Some("unlisted".to_string()); // "public" | "unlisted" | "private"
-
+    status.self_declared_made_for_kids = Some(false);
     video.snippet = Some(snippet);
     video.status = Some(status);
 

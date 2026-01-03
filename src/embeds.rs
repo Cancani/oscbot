@@ -126,12 +126,18 @@ pub fn render_and_upload_embed(
 pub fn upload_result_embed (
     title: &String,
     youtube_id: &String,
+    title_too_long: bool,
 ) -> Result<serenity::CreateEmbed, Error> {
-    let embed = serenity::CreateEmbed::default();
+    let mut embed = serenity::CreateEmbed::default();
     let author = serenity::CreateEmbedAuthor::new("Render and upload");
 
-    Ok(embed.author(author)
+    embed = embed.author(author)
             .color(get_embed_color(&MessageState::SUCCESS))
             .title(title)
-            .description(format!("Video has been uploaded successfully: https://youtu.be/{}", youtube_id)))
+            .description(format!("Video has been uploaded successfully: https://studio.youtube.com/video/{}/edit", youtube_id));
+
+    if title_too_long {
+        embed = embed.field("Warning: The title was too long. Please adjust accordingly and set it yourself.", title, false);
+    }
+    Ok(embed)
 }
