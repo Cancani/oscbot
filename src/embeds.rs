@@ -32,19 +32,19 @@ pub fn single_text_response_embed(text: &str, message_state: MessageState) -> Cr
     serenity::CreateEmbed::default().description(text).color(get_embed_color(&message_state))
 }
 
-pub async fn score_embed_from_replay_file(replay: &osu_db::Replay, map: &rosu::BeatmapExtended) -> Result<serenity::CreateEmbed, Error> {
+pub async fn score_embed_from_replay_file(replay: &osu_db::Replay, map: &rosu::BeatmapExtended, reason: Option<String>) -> Result<serenity::CreateEmbed, Error> {
     let user = osu::get_osu_instance().user(replay.player_name.as_ref().expect("Expect a username")).await.expect("Player to exist");
     let result = huismetbenen::calculate_score_by_replay(replay, map).await;
     let hits = format!("{}/{}/{}/{}", replay.count_300, replay.count_100, replay.count_50, replay.count_miss);
     let mods = osu::formatter::convert_osu_db_to_mod_array(replay.mods).join("");
-    score_embed(map, &user, Some(replay.online_score_id), replay.score, result.accuracy, hits, replay.max_combo as u32, mods, Some(result.pp), rosu::GameMode::from(replay.mode.raw())).await
+    score_embed(map, &user, Some(replay.online_score_id), replay.score, result.accuracy, hits, replay.max_combo as u32, mods, Some(result.pp), rosu::GameMode::from(replay.mode.raw()), reason).await
 }
 
-pub async fn score_embed_from_score(score: &rosu::Score, map: &rosu::BeatmapExtended) -> Result<serenity::CreateEmbed, Error> {
+pub async fn score_embed_from_score(score: &rosu::Score, map: &rosu::BeatmapExtended, reason: Option<String>) -> Result<serenity::CreateEmbed, Error> {
     let user = score.get_user(osu::get_osu_instance()).await.expect("User has not been found");
     let hits = osu::formatter::osu_hits(&score.statistics, &score.mode);
     let mods = osu::formatter::mods_string(&score.mods);
-    score_embed(map, &user, Some(score.id), score.score, score.accuracy, hits, score.max_combo, mods, score.pp, score.mode).await
+    score_embed(map, &user, Some(score.id), score.score, score.accuracy, hits, score.max_combo, mods, score.pp, score.mode, reason).await
 }
 
 async fn score_embed(
@@ -58,6 +58,7 @@ async fn score_embed(
     mods: String,
     pp: Option<f32>,
     mode: rosu::GameMode,
+    reason: Option<String>,
 ) -> Result<serenity::CreateEmbed, Error> {
     let mapset = map.mapset.as_ref().expect("Mapset has not been found");
     let embed = serenity::CreateEmbed::default();
@@ -81,7 +82,8 @@ async fn score_embed(
          .field("Hits:", hits, true)
          .field("Combo:", max_combo.to_string() + "x", true)
          .field("Mods:", mods, true)
-         .field("PP:", format!("{:.2}", pp.unwrap_or(0.0)), true))
+         .field("PP:", format!("{:.2}", pp.unwrap_or(0.0)), true)
+         .field("Reason:", reason.unwrap_or("No reason provided".into()), false))
 }
 
 pub fn render_and_upload_embed(

@@ -13,7 +13,7 @@ pub async fn score(
     ctx: Context<'_>,
     #[description = "score id"] scoreid: Option<u64>,
     #[description = "score file"] scorefile: Option<serenity::Attachment>,
-    // #[description = "reason"] reason: Option<String>,
+    #[description = "reason"] reason: Option<String>,
 ) -> Result<(), Error> {
     let suggestion: CreateMessage;
     ctx.defer().await?;
@@ -53,7 +53,7 @@ pub async fn score(
             buttons.push(upload_score_button);
         }
         let map = osu::get_osu_instance().beatmap().map_id(score.map_id).await.expect("Beatmap exists");
-        let embed = embeds::score_embed_from_score(&score, &map).await?;
+        let embed = embeds::score_embed_from_score(&score, &map, reason).await?;
 
 
         suggestion = serenity::CreateMessage::new()
@@ -86,7 +86,7 @@ pub async fn score(
                 return Ok(());
             },
         };
-        let embed = embeds::score_embed_from_replay_file(&replay, &map).await?;
+        let embed = embeds::score_embed_from_replay_file(&replay, &map, reason).await?;
         suggestion = serenity::CreateMessage::new()
             .embed(embed.footer(serenity::CreateEmbedFooter::new(format!("Requested by @{}", ctx.author().name))))
             .add_file(CreateAttachment::bytes(bytes, "replay.osr"));

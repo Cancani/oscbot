@@ -17,7 +17,7 @@ pub async fn bundle(_ctx: Context<'_>, _arg: String) -> Result<(), Error> { Ok((
 pub async fn test_osu_client(ctx: Context<'_>) -> Result<(), Error> {
     let score = osu::get_osu_instance().score(1724681877).await.expect("Score should exist");
     let map = osu::get_osu_instance().beatmap().map_id(score.map_id).await.expect("Beatmap exists");
-    let embed = embeds::score_embed_from_score(&score, &map).await?;
+    let embed = embeds::score_embed_from_score(&score, &map, None).await?;
     let button_id = format!("thumbnail:{}", score.id);
     let button = serenity::CreateButton::new(button_id)
     .label("Render Thumbnail")
