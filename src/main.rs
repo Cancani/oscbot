@@ -35,11 +35,11 @@ fn init_logging() {
 async fn main() {
     dotenvy::dotenv().ok();
     init_logging();
-    tracing::trace!("starting up...");
+    tracing::debug!("starting up...");
     osu::initialize_osu().await.unwrap();
-    tracing::trace!("osu!api initialized!");
+    tracing::debug!("osu!api initialized!");
     firebase::initialize_firebase().await.unwrap();
-    tracing::trace!("firebase initialized!");
+    tracing::debug!("firebase initialized!");
 
     let token = std::env::var("OSC_BOT_DISCORD_TOKEN").expect("missing OSC_BOT_DISCORD_TOKEN");
     let intents = serenity::GatewayIntents::all();

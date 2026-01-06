@@ -43,6 +43,7 @@ pub async fn thumbnail(
                 return Ok(());
             }
         };
+        tracing::debug!(scoreid = unwrapped_score_id, "Score has been found");
         let map = osu::get_osu_instance().beatmap().map_id(score.map_id).await.expect("Beatmap exists");
         image = thumbnail::generate_thumbnail_from_score(&score, &map, &subtitle.unwrap_or("".to_string())).await;
     }
@@ -55,6 +56,7 @@ pub async fn thumbnail(
                 return Ok(());
             },
         };
+        tracing::debug!(replay_hash = replay.replay_hash, "Replay has been parsed successfully");
         let map: BeatmapExtended = match osu::get_beatmap_from_checksum(&replay.beatmap_hash).await {
             Some(map) => map,
             None => {

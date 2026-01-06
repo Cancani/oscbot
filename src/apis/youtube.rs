@@ -24,6 +24,7 @@ pub async fn wait_open(path: &Path, timeout: Duration) -> std::io::Result<std::f
 
 // thank god for chatGPT
 pub async fn upload(video_path: &String, title: String, description: String, thumbnail: Vec<u8>) -> Result<String, Error> {
+    tracing::info!("Uploading to youtube...");
 
     // Always persist OAuth tokens into the project working directory.
     // This is intentionally not configurable to keep local + Docker behavior identical.
@@ -95,6 +96,7 @@ pub async fn upload(video_path: &String, title: String, description: String, thu
 
     let thumb_mime = "image/png".parse().unwrap(); // or "image/jpeg"
 
+    tracing::info!("Setting thumbnail...");
     // set thumbnail
     hub
         .thumbnails()
