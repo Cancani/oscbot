@@ -14,8 +14,10 @@ pub fn slash_commands_bundle() -> Vec<poise::Command<Data, Error>> {
             skin_commands::bundle(),
             admin_commands::bundle(),
     ];
+
     if cfg!(debug_assertions) {
         commands_bundle.push(dev_commands::bundle());
     }
+    
     commands_bundle
 }
