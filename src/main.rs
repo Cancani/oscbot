@@ -65,7 +65,7 @@ async fn main() {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 
-                background_tasks::start_background_tasks(&ctx).await;
+                tokio::spawn(background_tasks::start_background_tasks(&ctx));
                 Ok(Data {})
             })
         })
