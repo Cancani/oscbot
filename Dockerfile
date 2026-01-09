@@ -86,10 +86,10 @@ RUN set -eux; \
 FROM rust:1.92.0-bookworm@sha256:3d0d1a335e1d1220d416a1f38f29925d40ec9929d3c83e07a263adf30a7e4aa3 AS oscbot-builder
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ARG OSCBOT_PROFILE=release        # "release" or "debug"
-ARG OSCBOT_LTO=thin               # "false", "thin", or "true"
-ARG OSCBOT_CODEGEN_UNITS=16       # faster compiles than 1
-ARG OSCBOT_INCREMENTAL=0          # set 1 for dev if you want
+ARG OSCBOT_PROFILE=release
+ARG OSCBOT_LTO=thin
+ARG OSCBOT_CODEGEN_UNITS=16
+ARG OSCBOT_INCREMENTAL=0
 
 ENV CARGO_PROFILE_RELEASE_STRIP=symbols \
     CARGO_PROFILE_RELEASE_LTO=${OSCBOT_LTO} \
@@ -102,35 +102,40 @@ RUN --mount=type=cache,id=apt-cache-rust,target=/var/cache/apt,sharing=locked \
       pkg-config libssl-dev ca-certificates build-essential mold
 
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
-
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir -p src && printf 'fn main() {}\n' > src/main.rs
 
-RUN --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git \
-    --mount=type=cache,id=cargo-target,target=/app/target \
+RUN --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=cargo-target-release,target=/app/target-release \
+    --mount=type=cache,id=cargo-target-debug,target=/app/target-debug \
     set -eux; \
     if [ "${OSCBOT_PROFILE}" = "release" ]; then \
+      export CARGO_TARGET_DIR=/app/target-release; \
       cargo build --release --locked; \
     else \
+      export CARGO_TARGET_DIR=/app/target-debug; \
       cargo build --locked; \
     fi
 
 COPY src ./src
 
-RUN --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git \
-    --mount=type=cache,id=cargo-target,target=/app/target \
+RUN --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git,sharing=locked \
+    --mount=type=cache,id=cargo-target-release,target=/app/target-release \
+    --mount=type=cache,id=cargo-target-debug,target=/app/target-debug \
     set -eux; \
     mkdir -p /out; \
     if [ "${OSCBOT_PROFILE}" = "release" ]; then \
+      export CARGO_TARGET_DIR=/app/target-release; \
       cargo build --release --locked; \
-      cp target/release/oscbot /out/oscbot; \
+      cp /app/target-release/release/oscbot /out/oscbot; \
     else \
+      export CARGO_TARGET_DIR=/app/target-debug; \
       cargo build --locked; \
-      cp target/debug/oscbot /out/oscbot; \
+      cp /app/target-debug/debug/oscbot /out/oscbot; \
     fi
 
 FROM nvidia/cuda:${CUDA_VER}-runtime-ubuntu${UBUNTU_VER}@sha256:44e43f0e0bcca1fc6fdc775e6002c67834bf78d39eb1fd76825240fc79ba4a49 AS final
