@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - "**"
+    paths:
+      - Dockerfile
+      - src/**
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/docker-image.yml
   workflow_dispatch:
 
 concurrency:
